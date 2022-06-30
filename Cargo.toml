@@ -10,9 +10,6 @@ readme = "README.md"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
-[lib]
-name = "bip0039"
-
 [dependencies]
 rust-crypto = "0.2.36"
 rand = "0.8.5"
