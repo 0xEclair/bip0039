@@ -1,7 +1,7 @@
 use bitreader::BitReader;
 
 use crate::{
-    crypto::{gen_random_bytes, sha256},
+    crypto::{gen_random_bytes, pbkdf2, sha256},
     error::Bip0039Error,
     keytype::KeyType,
     language::Language,
@@ -16,7 +16,7 @@ pub struct Bip39 {
 }
 
 impl Bip39 {
-    fn to_hex(&self) -> String {
+    pub fn to_hex(&self) -> String {
         static CHARS: &'static [u8] = b"0123456789abcdef";
 
         let seed: &[u8] = self.seed.as_ref();
@@ -34,7 +34,7 @@ impl Bip39 {
         let num_words = key_type.total_bits();
         let word_list = Bip39::wordlist(&lang);
         let entropy = gen_random_bytes(entropy_bits / 8)?;
-        let entropy_hash = sha256(entropy.as_ref()).from_hex().unwrap();
+        let entropy_hash = hex_string_to_bytes(&sha256(entropy.as_ref()));
 
         let mut combined = Vec::from(entropy);
         combined.extend(&entropy_hash);
@@ -59,7 +59,7 @@ impl Bip39 {
 
         Ok(Bip39 {
             mnemonic: mnemonic.clone(),
-            seed: vec![],
+            seed: Bip39::generate_seed(&mnemonic.as_bytes(), &password),
             lang: lang,
         })
     }
@@ -78,5 +78,43 @@ impl Bip39 {
         };
 
         lang_words.split_whitespace().map(|s| s.into()).collect()
+    }
+
+    fn generate_seed(entropy: &[u8], password: &str) -> Vec<u8> {
+        let salt = format!("mnemonic{}", password);
+        pbkdf2(entropy, salt)
+    }
+}
+
+pub fn hex_string_to_bytes(str: &String) -> Vec<u8> {
+    let mut b = Vec::with_capacity(str.len() / 2);
+    let mut modulus = 0;
+    let mut buf = 0;
+
+    for (idx, byte) in str.bytes().enumerate() {
+        buf <<= 4;
+        match byte {
+            b'A'..=b'F' => buf |= byte - b'A' + 10,
+            b'a'..=b'f' => buf |= byte - b'a' + 10,
+            b'0'..=b'9' => buf |= byte - b'0',
+            b' ' | b'\r' | b'\n' | b'\t' => {
+                buf >>= 4;
+                continue;
+            }
+            _ => {
+                return vec![];
+            }
+        }
+
+        modulus += 1;
+        if modulus == 2 {
+            modulus = 0;
+            b.push(buf);
+        }
+    }
+
+    match modulus {
+        0 => b.into_iter().collect(),
+        _ => vec![],
     }
 }
