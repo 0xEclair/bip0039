@@ -31,7 +31,7 @@ impl Bip39 {
 
     pub fn new(key_type: &KeyType, lang: Language, password: &str) -> Result<Bip39, Bip0039Error> {
         let entropy_bits = key_type.entropy_bits();
-        let num_words = key_type.total_bits();
+        let num_words = key_type.word_length();
         let word_list = Bip39::wordlist(&lang);
         let entropy = gen_random_bytes(entropy_bits / 8)?;
         let entropy_hash = hex_string_to_bytes(&sha256(entropy.as_ref()));
