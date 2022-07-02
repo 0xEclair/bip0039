@@ -17,7 +17,7 @@ fn main() {
     };
 
     let phrase = &bip39.mnemonic;
-    let hex = &bip39.to_hex();
-    println!("phrase: {:?}", phrase);
-    println!("seed: {:?}", hex);
+    let hex = bip39.to_hex();
+    println!("phrase: {}", phrase);
+    println!("seed: {}", hex);
 }
