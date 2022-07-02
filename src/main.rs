@@ -1,9 +1,4 @@
-use bip0039::{
-    bip39::{hex_string_to_bytes, Bip39},
-    crypto::sha256,
-    keytype,
-    language::Language,
-};
+use bip0039::{bip39::Bip39, keytype, language::Language};
 
 fn main() {
     let kt = keytype::KeyType::for_word_length(12).unwrap();

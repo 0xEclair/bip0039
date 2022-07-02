@@ -90,21 +90,42 @@ impl Bip39 {
         }
 
         let mut checksum_to_validate = BitVec::new();
-        &checksum_to_validate.extend((&to_validate).into_iter().skip(entropy_bits).take(checksum_bits);
-        assert_eq!(checksum_to_validate.len(), checksum_bits, "invalid checksum size");
+        &checksum_to_validate.extend(
+            (&to_validate)
+                .into_iter()
+                .skip(entropy_bits)
+                .take(checksum_bits),
+        );
+        assert_eq!(
+            checksum_to_validate.len(),
+            checksum_bits,
+            "invalid checksum size"
+        );
 
         let mut entropy_to_validate = BitVec::new();
         &entropy_to_validate.extend((&to_validate).into_iter().take(entropy_bits));
-        assert_eq!(entropy_to_validate.len(), entropy_bits, "invalid entropy size");
+        assert_eq!(
+            entropy_to_validate.len(),
+            entropy_bits,
+            "invalid entropy size"
+        );
 
-        let hash = sha256(entropy_to_validate.to_bytes().as_ref()).from_hex().unwrap();
+        let hash = hex_string_to_bytes(&sha256(entropy_to_validate.to_bytes().as_ref()));
         let entropy_hash_to_validate_bits = BitVec::from_bytes(hash.as_ref());
 
         let mut new_checksum = BitVec::new();
-        &new_checksum.extend(entropy_hash_to_validate_bits.into_iter().take(checksum_bits));
-        assert_eq!(new_checksum.len(), checksum_bits, "invalid new checksum size");
+        &new_checksum.extend(
+            entropy_hash_to_validate_bits
+                .into_iter()
+                .take(checksum_bits),
+        );
+        assert_eq!(
+            new_checksum.len(),
+            checksum_bits,
+            "invalid new checksum size"
+        );
         if !(new_checksum == checksum_to_validate) {
-            return Err(Bip39Error::InvalidChecksum)
+            return Err(Bip0039Error::InvalidChecksum);
         }
 
         Ok(())
@@ -137,7 +158,7 @@ pub fn hex_string_to_bytes(str: &String) -> Vec<u8> {
     let mut modulus = 0;
     let mut buf = 0;
 
-    for (idx, byte) in str.bytes().enumerate() {
+    for (_, byte) in str.bytes().enumerate() {
         buf <<= 4;
         match byte {
             b'A'..=b'F' => buf |= byte - b'A' + 10,
