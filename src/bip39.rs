@@ -1,4 +1,4 @@
-use bitreader::BitReader;
+use {bit_vec::BitVec, bitreader::BitReader};
 
 use crate::{
     crypto::{gen_random_bytes, pbkdf2, sha256},
@@ -65,8 +65,46 @@ impl Bip39 {
     }
 
     pub fn validate(mnemonic: &String, lang: &Language) -> Result<(), Bip0039Error> {
-        if (mnemonic == "") {
+        if mnemonic == "" {
             return Err(Bip0039Error::EntropyUnavailable);
+        }
+
+        let key_type = KeyType::for_mnemonic(&mnemonic)?;
+        let entropy_bits = key_type.entropy_bits();
+        let checksum_bits = key_type.checksum_bits();
+
+        let mut word_map = std::collections::HashMap::new();
+        let word_list = Bip39::wordlist(lang);
+
+        for (i, item) in word_list.into_iter().enumerate() {
+            word_map.insert(item, i as u16);
+        }
+
+        let mut to_validate = BitVec::new();
+        for word in mnemonic.split(" ").into_iter() {
+            let n = word_map.get(word).unwrap();
+            for i in 0..11 {
+                let bit = Bip39::bit_from_u16_as_u11(*n, i);
+                to_validate.push(bit);
+            }
+        }
+
+        let mut checksum_to_validate = BitVec::new();
+        &checksum_to_validate.extend((&to_validate).into_iter().skip(entropy_bits).take(checksum_bits);
+        assert_eq!(checksum_to_validate.len(), checksum_bits, "invalid checksum size");
+
+        let mut entropy_to_validate = BitVec::new();
+        &entropy_to_validate.extend((&to_validate).into_iter().take(entropy_bits));
+        assert_eq!(entropy_to_validate.len(), entropy_bits, "invalid entropy size");
+
+        let hash = sha256(entropy_to_validate.to_bytes().as_ref()).from_hex().unwrap();
+        let entropy_hash_to_validate_bits = BitVec::from_bytes(hash.as_ref());
+
+        let mut new_checksum = BitVec::new();
+        &new_checksum.extend(entropy_hash_to_validate_bits.into_iter().take(checksum_bits));
+        assert_eq!(new_checksum.len(), checksum_bits, "invalid new checksum size");
+        if !(new_checksum == checksum_to_validate) {
+            return Err(Bip39Error::InvalidChecksum)
         }
 
         Ok(())
@@ -83,6 +121,14 @@ impl Bip39 {
     fn generate_seed(entropy: &[u8], password: &str) -> Vec<u8> {
         let salt = format!("mnemonic{}", password);
         pbkdf2(entropy, salt)
+    }
+
+    fn bit_from_u16_as_u11(input: u16, position: u16) -> bool {
+        if position < 11 {
+            input & (1 << (10 - position)) != 0
+        } else {
+            false
+        }
     }
 }
 
