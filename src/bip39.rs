@@ -90,7 +90,7 @@ impl Bip39 {
         }
 
         let mut checksum_to_validate = BitVec::new();
-        &checksum_to_validate.extend(
+        checksum_to_validate.extend(
             (&to_validate)
                 .into_iter()
                 .skip(entropy_bits)
@@ -103,7 +103,7 @@ impl Bip39 {
         );
 
         let mut entropy_to_validate = BitVec::new();
-        &entropy_to_validate.extend((&to_validate).into_iter().take(entropy_bits));
+        entropy_to_validate.extend((&to_validate).into_iter().take(entropy_bits));
         assert_eq!(
             entropy_to_validate.len(),
             entropy_bits,
@@ -114,7 +114,7 @@ impl Bip39 {
         let entropy_hash_to_validate_bits = BitVec::from_bytes(hash.as_ref());
 
         let mut new_checksum = BitVec::new();
-        &new_checksum.extend(
+        new_checksum.extend(
             entropy_hash_to_validate_bits
                 .into_iter()
                 .take(checksum_bits),
